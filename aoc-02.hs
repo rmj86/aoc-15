@@ -31,9 +31,10 @@ area (a,b,c) = 2*(a1+a2+a3) + m
   where a1 = a*b
         a2 = b*c
         a3 = c*a
-        m = min a1 (min a2 a3)
+        m = minimum [a1, a2, a3]
 
-solution1 bs = sum (map area bs)
+solution1 bs = sum . map area $ bs
+
 
 {------------------------------{ Part The 2nd }---------------------------------
   The elves are also running low on ribbon. Ribbon is all the same width, so 
@@ -58,28 +59,22 @@ solution1 bs = sum (map area bs)
   How many total feet of ribbon should they order?
 -------------------------------------------------------------------------------}
 
-around (a,b,c) = 2 * min p1 (min p2 p3)
-  where p1 = a+b
-        p2 = b+c
-        p3 = c+a
+around (a,b,c) = 2 * minimum [a+b, b+c, c+a] 
 
 bow (a,b,c) = a*b*c
 
-solution2 bs = sum (map (\b->around b + bow b) bs)
+solution2 bs = sum . map (\b-> around b + bow b) $ bs
+
 
 {------------------------------------- IO -------------------------------------}
 
-
 getData :: IO [Box]
-getData = do s <- readFile "data/aoc-02.txt"
-             return $ map parse (lines s)
+getData = return . map parse . lines =<< readFile "data/aoc-02.txt"
   where parse t = read $ "(" ++ (replace 'x' ',' t) ++ ")"  :: Box
-        replace a b [] = []
-        replace a b (x:xs) = 
-            if x==a 
-            then b:(replace a b xs) 
-            else x:(replace a b xs)
-
+        replace _ _ [] = []
+        replace a b (x:xs) 
+          | x == a    = b:(replace a b xs) 
+          | otherwise = x:(replace a b xs)
 
 main :: IO ()
 main = do s <- getData

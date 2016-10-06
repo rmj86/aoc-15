@@ -28,13 +28,15 @@ import qualified Data.Set as Set
 type House = (Int, Int)
 
 move :: House -> Char -> House
-move (x,y) '^' = (x,y+1)
-move (x,y) 'v' = (x,y-1)
-move (x,y) '<' = (x-1,y)
-move (x,y) '>' = (x+1,y)
-move (x,y) c = error ("unknown move: "++show c)
+move (x,y) direction = case direction of 
+        '^' -> (x,y+1)
+        'v' -> (x,y-1)
+        '<' -> (x-1,y)
+        '>' -> (x+1,y)
+        _   -> error $ "unknown direction: " ++ show direction
 
-solution1 ms = Set.size (Set.fromList (scanl move (0,0) ms))
+solution1 ds = Set.size . Set.fromList . scanl move (0,0) $ ds
+
 
 {------------------------------{ Part The 2nd }---------------------------------
   The next year, to speed up the process, Santa creates a robot version of 
@@ -62,18 +64,18 @@ parts [a] = ([a],[])
 parts (a:b:bs) = (a:p1, b:p2)
   where (p1,p2) = parts bs
 
-solution2 ms = Set.size (Set.union robo flesh)
-  where (ms1,ms2) = parts ms
-        flesh = (Set.fromList (scanl move (0,0) ms1))
-        robo = (Set.fromList (scanl move (0,0) ms2))
+solution2 ds = Set.size $ Set.union robo flesh
+  where (ds1, ds2) = parts ds
+        flesh = Set.fromList . scanl move (0,0) $ ds1
+        robo  = Set.fromList . scanl move (0,0) $ ds2
+
 
 {------------------------------------- IO -------------------------------------}
-
 
 getData :: IO String
 getData = readFile "data/aoc-03.txt"
 
 main :: IO ()
-main = do moves <- getData
-          print (solution1 moves)
-          print (solution2 moves)
+main = do directions <- getData
+          print . solution1 $ directions
+          print . solution2 $ directions
