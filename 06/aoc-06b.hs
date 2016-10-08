@@ -47,7 +47,7 @@ evalPoint2 p ((c,bb):cs) = case bb `contains` p of
 
 solution2 cs = sum $ [evalPoint2 p cs | p<-points]
 
--- IO --
+{------------------------------------  IO  ------------------------------------}
 
 parse_bbox ws = read $ "(" ++ (p1 ++ "," ++ p2) ++ ")"
   where [p1,_,p2] = ws
@@ -58,8 +58,6 @@ parse s = case words s of
         "turn"   : ws -> case ws of
             "on"  : ps -> (TurnOn,  parse_bbox ps)
             "off" : ps -> (TurnOff, parse_bbox ps)
-
-{------------------------------------  IO  ------------------------------------}
 
 getData = return . reverse . map parse . lines =<< readFile "input.txt"
 

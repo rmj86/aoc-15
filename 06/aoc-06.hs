@@ -1,6 +1,6 @@
-import Data.List (foldl')
-
 {-------------------------------  Part The 1st  -------------------------------}
+
+import Data.List (foldl')
 
 type Point = (Int, Int)
 type Grid = [[Int]]
@@ -23,9 +23,7 @@ apply ls (c, p0, p1) = case c of
         "turnon"  -> mapRegion (const 1) p0 p1 ls
         "turnoff" -> mapRegion (const 0) p0 p1 ls
 
-applyAll cs init = foldl' apply init cs
-
-solution1 cs = sum . map sum . applyAll cs $ lights
+solution1 cs = sum . map sum . foldl' apply lights $ cs
 
 {-------------------------------  Part The 2nd  -------------------------------}
 
