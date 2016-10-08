@@ -1,48 +1,57 @@
-import Data.Word
-import Data.Bits
 {------------------------------{ Advent of Code }------------------------------}
 {----------------------{ Day 7: Some Assembly Required }-----------------------}
-{-------------------------------{ Part the 1st }-------------------------------}
-{-------------------------------{ Part the 2nd }-------------------------------}
 
 -- Figuring out variable dependencies is what the Haskell compiler is for.
--- The easiest approach here is to transform the input to Haskell syntax and
+-- The obvious approach here is to transform the input to Haskell syntax and
 -- compile it. This file generates the source files  aoc-07-p1.hs  and
 -- aoc-07-p2.hs
 
+import System.Process (system, readProcess)
+
 {---------------------------------{ Parsing }----------------------------------}
 
-parseData = map parse1
+parseLine l = unwords $ case words l of
+        [              v2, "->", v3] -> [v_ v3, "=",               v_ v2]
+        [    "NOT",    v2, "->", v3] -> [v_ v3, "=", "complement", v_ v2]
+        [v1, "AND",    v2, "->", v3] -> [v_ v3, "=", v_ v1, ".&.", v_ v2]
+        [v1, "OR",     v2, "->", v3] -> [v_ v3, "=", v_ v1, ".|.", v_ v2]
+        [v1, "LSHIFT", v2, "->", v3] -> [v_ v3, "=", v_ v1, ".<.", v_ v2]
+        [v1, "RSHIFT", v2, "->", v3] -> [v_ v3, "=", v_ v1, ".>.", v_ v2]
+        _  -> error $ "Unparsable line: " ++ l
+        -- _ -> [""]
+  where v_ str | elem (head str) "0123456789"  = str
+               | otherwise = "v_" ++ str  -- some of the identifiers are not
+                                          -- legal Haskell names
 
-parse1 s = (pv p3) ++ " = " ++ (parse2 p1)
-  where (p1, p2) = break (=='-') s
-        p3 = drop 3 p2
+{-------------------------------{ Part the 1st }-------------------------------}
+generateP1 = return . map parseLine . lines =<< readFile "input.txt"
 
-parse2 s
- | length w==1 = pv (w!!0)
- | w!!0=="NOT" = "complement " ++ pv (w!!1)
- | w!!1=="AND" = pv (w!!0) ++ " .&. " ++ pv (w!!2)
- | w!!1=="OR"  = pv (w!!0) ++ " .|. " ++ pv (w!!2)
- | w!!1=="LSHIFT" = "shiftL " ++ pv (w!!0) ++ " " ++ pv (w!!2)
- | w!!1=="RSHIFT" = "shiftR " ++ pv (w!!0) ++ " " ++ pv (w!!2)
- | otherwise = error s
- where w = words s
-
-pv s = if elem s ["do","if","id","in"] then "var_"++s else s
-
+{-------------------------------{ Part the 2nd }-------------------------------}
+replaceB new_b = map $ (\l -> case words l of
+        ["v_b", "=", _]  -> unwords ["v_b", "=", new_b]
+        _                -> l  )
 
 {------------------------------------{ IO }------------------------------------}
 
-readData = do s <- readFile "input.txt"
-              return $ lines s
+writeProgram name p_lines = writeFile name . unlines
+                          $ p_start ++ p_lines ++ p_main
+  where p_start = [ "import Data.Bits"
+                  , "import Data.Word"
+                  , "(.<.) = shiftL"
+                  , "(.>.) = shiftR"
+                  , "v_a::Word16"
+                  , "" ]
+        p_main = ["", "main = print v_a", ""]
 
-prgmStart = "import Data.Bits\nimport Data.Word\na::Word16\n\n"
-prgmMain = "\nmain = print a\n"
+main = do
+    p_lines <- generateP1
+    writeProgram "aoc-07-p1.hs" p_lines
+    system "ghc --make aoc-07-p1.hs"
+    v_a <- readProcess "aoc-07-p1.exe" [] ""
+    putStr "Part 1: " >> putStrLn v_a
 
-writeData ss = do let prgm = prgmStart ++ unlines ss ++ prgmMain
-                  writeFile "aoc-07-p1.hs" prgm
-
-
-main = do ss <- readData
-          let ts = parseData ss
-          writeData ts
+    let p_lines2 = replaceB v_a p_lines
+    writeProgram "aoc-07-p2.hs" p_lines2
+    system "ghc --make aoc-07-p2.hs"
+    v_a <- readProcess "aoc-07-p2.exe" [] ""
+    putStr "Part 2: " >> putStrLn v_a
