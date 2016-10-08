@@ -9,10 +9,10 @@ def solution_1(commands):
     f = { "turn off" : lambda b: 0
         , "turn on"  : lambda b: 1
         , "toggle"   : lambda b: 1-b }
-    a = np.zeros((1000,1000), dtype=int)
-    for (c,bbox) in commands:
-        mapRegion(f[c], bbox, a)
-    return a.sum()
+    lights = np.zeros((1000,1000), dtype=int)
+    for (cmd, bbox) in commands:
+        mapRegion(f[cmd], bbox, lights)
+    return lights.sum()
 
 def solution_2(commands):
     def nonNegative(a):
@@ -21,10 +21,10 @@ def solution_2(commands):
     f = { "turn off" : lambda a: nonNegative(a-1)
         , "turn on"  : lambda a: a+1
         , "toggle"   : lambda a: a+2 }
-    a = np.zeros((1000,1000), dtype=int)
-    for (c,bbox) in commands:
-        mapRegion(f[c], bbox, a)
-    return a.sum()
+    lights = np.zeros((1000,1000), dtype=int)
+    for (cmd, bbox) in commands:
+        mapRegion(f[cmd], bbox, lights)
+    return lights.sum()
 
 def getCommands():
     with open("input.txt") as f:
