@@ -1,5 +1,7 @@
 import Data.List (foldl')
 
+{-------------------------------  Part The 1st  -------------------------------}
+
 type Point = (Int, Int)
 
 lights :: [[Bool]]
@@ -7,9 +9,9 @@ lights = [[False | y<-[0..999]]
                  | x<-[0..999]]
 
 applyInRegion u (x0,y0) (x1,y1) ls = zipWith f [0..] ls
-  where 
-    f i xs = 
-      if i<x0 then xs else 
+  where
+    f i xs =
+      if i<x0 then xs else
         if i>x1 then xs else
           zipWith g [0..] xs
     g j x =
@@ -30,7 +32,7 @@ apply ls (c, p0, p1)
  | c=="turnoff" = turn False p0 p1 ls
  | c=="toggle" = toggle p0 p1 ls
  | otherwise = error ""
- 
+
 apply_all cs = foldl' apply lights cs
 
 count_them ls = sum $ map (foldl' tick 0) ls
@@ -39,8 +41,7 @@ count_them ls = sum $ map (foldl' tick 0) ls
 
 solution1 cs = count_them $ apply_all cs
 
---------------------------------------------------------------------------------
--- Part 2
+{-------------------------------  Part The 2nd  -------------------------------}
 
 lights2 :: [[Int]]
 lights2 = [[0 | y<-[0..999]]
@@ -71,12 +72,12 @@ parse_p :: String -> Point
 parse_p s = read $ "("++s++")"
 
 parse :: String -> (String, Point, Point)
-parse s 
+parse s
  | w!!0=="turn" = (w!!0++w!!1, parse_p (w!!2), parse_p (w!!4))
  | w!!0=="toggle" = (w!!0, parse_p (w!!1), parse_p (w!!3))
   where w = words s
 
-getData = do s <- readFile "data/aoc-06.txt"
+getData = do s <- readFile "input.txt"
              return $ map parse (lines s)
 
 main = do cs <- getData
