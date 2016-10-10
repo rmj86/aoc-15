@@ -7,7 +7,10 @@ import qualified Data.Map.Strict as Map
 import Data.Map ((!))
 import Data.Bits
 import Data.Word
-import Debug.Trace
+import Control.Monad (liftM2)
+
+bitAnd = (.&.)
+bitOr =  (.|.)
 
 isNum s = case reads s :: [(Word16, String)] of
   [(_, "")] -> True
@@ -15,6 +18,7 @@ isNum s = case reads s :: [(Word16, String)] of
 
 {-----------------------------------{ Data }-----------------------------------}
 
+type Var = String
 data Operation = CONST Var
                | NOT Var
                | AND Var Var
@@ -23,30 +27,21 @@ data Operation = CONST Var
                | RSHIFT Var Var
                deriving (Show, Read, Eq)
 
-type Var = String
 type KnownValues = Map.Map String Word16
 type UnknownValues = Map.Map String Operation
 
-dependents (CONST a) = [a]
-dependents (NOT a) = [a]
-dependents (AND a b) = [a,b]
-dependents (OR a b) = [a,b]
-dependents (LSHIFT a b) = [a,b]
-dependents (RSHIFT a b) = [a,b]
-
-apply :: (Map.Map Var Word16) -> Operation -> Word16
-apply m op = case op of 
-        (CONST a)    -> ev a
-        (NOT a)      -> complement (ev a)
-        (AND a b)    -> (ev a) .&. (ev b)
-        (OR a b)     -> (ev a) .|. (ev b)
-        (LSHIFT a b) -> shiftL (ev a) (fromIntegral (ev b))
-        (RSHIFT a b) -> shiftR (ev a) (fromIntegral (ev b))
-  where ev v 
---          | trace ("ev "++v) False = undefined
-          | Map.member v m = m!v
-          | otherwise = read v
-
+-- evaluate an operation in the context of the given known values. Returns a
+-- Nothing if op depends on some unknown value, and a Just otherwise.
+evaluate :: KnownValues -> Operation -> Maybe Word16
+evaluate kn op = case op of 
+        (CONST a)    -> get a
+        (NOT a)      -> complement <$> get a
+        (AND a b)    -> (liftM2 bitAnd) (get a) (get b)
+        (OR a b)     -> (liftM2 bitOr ) (get a) (get b)
+        (LSHIFT a b) -> (liftM2 shiftL) (get a) (fromIntegral <$> (get b))
+        (RSHIFT a b) -> (liftM2 shiftR) (get a) (fromIntegral <$> (get b))
+  where get v | isNum v   = Just (read v)
+              | otherwise = Map.lookup v kn
 
 {---------------------------------{ Parsing }----------------------------------}
 
@@ -58,42 +53,35 @@ parse line = case words line of
     [a, "OR",  b,    "->", v] -> (v, OR a b)
     [a, "LSHIFT", b, "->", v] -> (v, LSHIFT a b)
     [a, "RSHIFT", b, "->", v] -> (v, RSHIFT a b)
-    _                         -> error ("Unexpected pattern: " ++ line)
-
 
 {---------------------------------{ Algorithm }--------------------------------}
 
 -- "iterative solution"
--- m is a Map of names to their known numeric value
--- ops is a List of names paired with the Operation that defines them
--- for each name in ops that is not already in m, if all its dependent values
--- are known, evaluate its vumeric value and put it in m.
--- recurse until the value of "a" is known
-digest :: KnownValues -> [(String, Operation)] -> KnownValues
-digest m ops 
---  | trace (show m) False = undefined
-  | Map.member "a" m = m
-  | otherwise = digest m' ops
-  where unknown s = not (Map.member s m)     :: Bool
-        known s = Map.member s m || isNum s  :: Bool
-        m' = foldl try_eval m ops
-        try_eval n (v,op)
-          | unknown v && all known (dependents op) = Map.insert v (apply m op) n
-          | otherwise = n
+-- fold over the entries if unknown. If the operation evaluates to
+-- a Just value, insert it into known and remove it from unknown.
+-- repeat the fold until all are known.
+digest :: KnownValues -> UnknownValues -> KnownValues
+digest known unknown 
+  | Map.null unknown = known
+  | otherwise = digest known' unknown'
+  where
+    (known', unknown') = Map.foldlWithKey evalSome (known, unknown) unknown
+    evalSome (kn, un) k op = case evaluate known op of
+            Just i  -> ( Map.insert k i kn
+                       , Map.delete k un )
+            Nothing -> (kn, un)
 
 {------------------------------------{ IO }------------------------------------}
 
-getInstructions = do return . map parse . lines =<< readFile "input.txt"
+getInstructions :: IO UnknownValues
+getInstructions = do return . Map.fromList . map parse
+                    . lines =<< readFile "input.txt"
 
 main = do
     ops <- getInstructions
-    let m = Map.empty :: Map.Map Var Word16
-    let m' = digest m ops
-    let a = m' ! "a"
+    let known = digest (Map.empty) ops
+    let a = known ! "a"
     putStr "Part 1: "  >> print a
     
-    let ops2 = [op | op <- ops,  fst op /= "b"]
-    let m2 = Map.insert "b" a m
-    let m2' = digest m2 ops
-    let a2 = m2' ! "a"
-    putStr "Part 2: " >> print a2
+    let known2 = digest (Map.singleton "b" a) (Map.delete "b" ops)
+    putStr "Part 1: "  >> print (known2 ! "a")
