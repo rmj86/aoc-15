@@ -1,4 +1,9 @@
-import qualified Data.Map as Map
+{-
+  Solving the problem with some actual algorithms and data structures,
+  instead of cheating and using the GHC compiler, as in aoc-07.hs
+-}
+
+import qualified Data.Map.Strict as Map
 import Data.Map ((!))
 import Data.Bits
 import Data.Word
@@ -19,6 +24,8 @@ data Operation = CONST Var
                deriving (Show, Read, Eq)
 
 type Var = String
+type KnownValues = Map.Map String Word16
+type UnknownValues = Map.Map String Operation
 
 dependents (CONST a) = [a]
 dependents (NOT a) = [a]
@@ -26,7 +33,6 @@ dependents (AND a b) = [a,b]
 dependents (OR a b) = [a,b]
 dependents (LSHIFT a b) = [a,b]
 dependents (RSHIFT a b) = [a,b]
-
 
 apply :: (Map.Map Var Word16) -> Operation -> Word16
 apply m op = case op of 
@@ -57,37 +63,37 @@ parse line = case words line of
 
 {---------------------------------{ Algorithm }--------------------------------}
 
+-- "iterative solution"
+-- m is a Map of names to their known numeric value
+-- ops is a List of names paired with the Operation that defines them
+-- for each name in ops that is not already in m, if all its dependent values
+-- are known, evaluate its vumeric value and put it in m.
+-- recurse until the value of "a" is known
+digest :: KnownValues -> [(String, Operation)] -> KnownValues
 digest m ops 
 --  | trace (show m) False = undefined
   | Map.member "a" m = m
   | otherwise = digest m' ops
-  where unknown s = not (Map.member s m)
-        known s = Map.member s m || isNum s
-        m' = foldl nxt m ops
-        nxt n (v,op)
+  where unknown s = not (Map.member s m)     :: Bool
+        known s = Map.member s m || isNum s  :: Bool
+        m' = foldl try_eval m ops
+        try_eval n (v,op)
           | unknown v && all known (dependents op) = Map.insert v (apply m op) n
           | otherwise = n
 
-
 {------------------------------------{ IO }------------------------------------}
 
-getData = do s <- readFile "aoc-7.txt"
-             return $ map parse (lines s)
-getData2 = do s <- readFile "aoc-7-2.txt"
-              return $ map parse (lines s)
+getInstructions = do return . map parse . lines =<< readFile "input.txt"
 
-main1 = do ops <- getData
-           let m = Map.empty :: Map.Map Var Word16
-           let m' = digest m ops
-           putStr "Part 1: "
-           print $ "a = " ++ show (m'!"a")
-
-main2 = do ops <- getData2
-           let m = Map.empty :: Map.Map Var Word16
-           let m' = digest m ops
-           putStr "Part 2: "
-           print $ "a = " ++ show (m'!"a")
-
-
-main = do main1
-          main2
+main = do
+    ops <- getInstructions
+    let m = Map.empty :: Map.Map Var Word16
+    let m' = digest m ops
+    let a = m' ! "a"
+    putStr "Part 1: "  >> print a
+    
+    let ops2 = [op | op <- ops,  fst op /= "b"]
+    let m2 = Map.insert "b" a m
+    let m2' = digest m2 ops
+    let a2 = m2' ! "a"
+    putStr "Part 2: " >> print a2
