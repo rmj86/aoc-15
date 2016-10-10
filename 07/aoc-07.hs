@@ -19,9 +19,10 @@ parseLine l = unwords $ case words l of
         [v1, "RSHIFT", v2, "->", v3] -> [v_ v3, "=", v_ v1, ".>.", v_ v2]
         _  -> error $ "Unparsable line: " ++ l
         -- _ -> [""]
-  where v_ str | elem (head str) "0123456789"  = str
-               | otherwise = "v_" ++ str  -- some of the identifiers are not
-                                          -- legal Haskell names
+  -- some of the identifiers are not legal Haskell names. Fix: prepend "v_"
+  where v_ str = case reads str :: [(Int,String)] of
+                        [(_,"")] -> str          -- is an Int literal
+                        _        -> "v_" ++ str  -- is a name
 
 {-------------------------------{ Part the 1st }-------------------------------}
 generateP1 = return . map parseLine . lines =<< readFile "input.txt"
