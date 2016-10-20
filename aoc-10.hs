@@ -27,6 +27,7 @@ import Data.List (group)
 
 say g = [length g, head g]
 looksay xs = say =<< group xs
+ls_sequence = iterate looksay [3,1,1,3,3,2,2,1,1,3]
 
 sol1 = length (ls_sequence !! 40)
 
