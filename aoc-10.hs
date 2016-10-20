@@ -23,24 +23,12 @@
   What is the length of the result?
 -------------------------------------------------------------------------------}
 
-rle :: [Int] -> [(Int,Int)]
-rle [] = []
-rle [x] = [(1,x)]
-rle (x:xs) =
-    if x==y
-    then (n+1,y):t
-    else (1,x):h:t
-  where (h:t) = rle xs
-        (n,y) = h
+import Data.List (group)
 
-next xs = n (rle xs)
-  where n [] = []
-        n ((a,b):ys) = a: b: n ys
+say g = [length g, head g]
+looksay xs = say =<< group xs
 
-
-input = [3,1,1,3,3,2,2,1,1,3] :: [Int]
-
-sol1 = length $ (iterate next input)!!40
+sol1 = length (ls_sequence !! 40)
 
 {-------------------------------{ Part the 2nd }--------------------------------
   Neat, right? You might also enjoy hearing John Conway talking about this
@@ -50,7 +38,7 @@ sol1 = length $ (iterate next input)!!40
   process 50 times. What is the length of the new result?
 -------------------------------------------------------------------------------}
 
-sol2 = length $ (iterate next input)!!50
+sol2 = length (ls_sequence !! 50)
 
 {------------------------------------{ IO }------------------------------------}
 
